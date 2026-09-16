@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Shayan Daniari — AI × Medicine × Strategy. Research, clinical innovation, and intelligent systems." />
+  <title>Shayan Daniari — AI × Medicine × Strategy</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #07090d;
+      --panel: rgba(255,255,255,.055);
+      --panel-strong: rgba(255,255,255,.085);
+      --text: #f7f8fb;
+      --muted: #9ca4b5;
+      --line: rgba(255,255,255,.12);
+      --accent: #8ab4ff;
+      --accent-2: #9bf0cf;
+      --shadow: 0 26px 80px rgba(0,0,0,.36);
+      --radius: 28px;
+    }
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{margin:0;background:
+      radial-gradient(circle at 12% 18%, rgba(79,130,255,.16), transparent 26%),
+      radial-gradient(circle at 88% 12%, rgba(51,214,162,.10), transparent 26%),
+      var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif;line-height:1.6;overflow-x:hidden}
+    a{color:inherit;text-decoration:none}
+    button,input,textarea{font:inherit}
+    .noise{position:fixed;inset:0;pointer-events:none;opacity:.22;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.08'/%3E%3C/svg%3E");z-index:0}
+    .wrap{width:min(1180px,calc(100% - 40px));margin:0 auto;position:relative;z-index:1}
+    nav{position:sticky;top:14px;z-index:20;padding-top:14px}
+    .nav-inner{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border:1px solid var(--line);background:rgba(8,10,15,.72);backdrop-filter:blur(18px);border-radius:20px;box-shadow:var(--shadow)}
+    .brand{font-family:Manrope,sans-serif;font-weight:800;letter-spacing:-.04em}.brand span{color:var(--accent)}
+    .links{display:flex;gap:24px;align-items:center;color:var(--muted);font-size:14px}.links a:hover{color:var(--text)}
+    .pill{padding:10px 14px;border-radius:999px;background:var(--text);color:#111;font-weight:700}
+    header{padding:110px 0 84px}
+    .eyebrow{display:inline-flex;gap:9px;align-items:center;border:1px solid var(--line);background:var(--panel);padding:8px 12px;border-radius:999px;color:#cfd5e2;font-size:13px}
+    .dot{width:8px;height:8px;border-radius:50%;background:var(--accent-2);box-shadow:0 0 18px var(--accent-2)}
+    h1{font-family:Manrope,sans-serif;font-size:clamp(54px,8vw,108px);line-height:.96;letter-spacing:-.07em;margin:26px 0 24px;max-width:1030px}
+    .gradient-text{background:linear-gradient(100deg,#fff 8%,#a9c8ff 50%,#9bf0cf);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .hero-grid{display:grid;grid-template-columns:1.55fr .8fr;gap:50px;align-items:end}
+    .lede{font-size:clamp(18px,2vw,24px);color:var(--muted);max-width:720px;margin:0}
+    .hero-card{padding:24px;border:1px solid var(--line);background:linear-gradient(160deg,var(--panel-strong),rgba(255,255,255,.02));border-radius:var(--radius)}
+    .hero-card strong{font-size:44px;display:block;font-family:Manrope,sans-serif;letter-spacing:-.05em}.hero-card p{margin:4px 0 0;color:var(--muted)}
+    .actions{display:flex;gap:12px;margin-top:34px;flex-wrap:wrap}
+    .btn{display:inline-flex;align-items:center;gap:8px;padding:14px 18px;border-radius:16px;border:1px solid var(--line);background:var(--panel);font-weight:700;transition:.2s transform,.2s background}
+    .btn:hover{transform:translateY(-2px);background:var(--panel-strong)}
+    .btn.primary{background:#fff;color:#08090d;border-color:#fff}
+    section{padding:86px 0}
+    .section-kicker{color:var(--accent-2);font-size:13px;text-transform:uppercase;letter-spacing:.16em;font-weight:800}
+    h2{font-family:Manrope,sans-serif;font-size:clamp(38px,5vw,66px);line-height:1.04;letter-spacing:-.05em;margin:12px 0 16px}
+    .section-copy{color:var(--muted);font-size:18px;max-width:720px}
+    .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:42px}
+    .card{position:relative;overflow:hidden;padding:28px;min-height:280px;border:1px solid var(--line);background:linear-gradient(160deg,var(--panel),rgba(255,255,255,.018));border-radius:var(--radius);transition:.25s transform,.25s border-color}
+    .card:hover{transform:translateY(-6px);border-color:rgba(138,180,255,.38)}
+    .num{font-size:12px;color:var(--accent);font-weight:800;letter-spacing:.14em}.card h3{font-family:Manrope,sans-serif;font-size:26px;letter-spacing:-.035em;margin:64px 0 10px}.card p{color:var(--muted);margin:0}
+    .work{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:40px}
+    .project{padding:30px;border-radius:var(--radius);border:1px solid var(--line);background:var(--panel);min-height:260px;display:flex;flex-direction:column;justify-content:space-between}
+    .project small{color:var(--accent-2);text-transform:uppercase;letter-spacing:.13em;font-weight:800}.project h3{font-size:30px;letter-spacing:-.04em;margin:18px 0 10px}.project p{color:var(--muted);margin:0}.tagrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:28px}.tag{font-size:12px;border:1px solid var(--line);padding:6px 10px;border-radius:999px;color:#c5ccda}
+    .split{display:grid;grid-template-columns:1fr 1fr;gap:50px;align-items:start}.quote{font-family:Manrope,sans-serif;font-size:clamp(34px,4vw,54px);line-height:1.12;letter-spacing:-.05em}.facts{display:grid;gap:14px}.fact{display:flex;justify-content:space-between;gap:20px;padding:16px 0;border-bottom:1px solid var(--line)}.fact span{color:var(--muted)}
+    .contact{padding:44px;border-radius:32px;border:1px solid var(--line);background:linear-gradient(145deg,rgba(138,180,255,.12),rgba(155,240,207,.05));display:grid;grid-template-columns:1fr 1fr;gap:28px}
+    form{display:grid;gap:12px}.field{width:100%;padding:14px 15px;border-radius:14px;border:1px solid var(--line);background:rgba(0,0,0,.26);color:var(--text);outline:none}.field:focus{border-color:rgba(138,180,255,.55)}textarea.field{min-height:120px;resize:vertical}.submit{cursor:pointer;border:0}
+    footer{padding:36px 0 50px;color:var(--muted);font-size:13px}.foot{display:flex;justify-content:space-between;border-top:1px solid var(--line);padding-top:24px}
+    .reveal{opacity:0;transform:translateY(18px);transition:.7s ease}.reveal.show{opacity:1;transform:none}
+    @media (max-width:900px){.links a:not(.pill){display:none}.hero-grid,.split,.contact{grid-template-columns:1fr}.cards{grid-template-columns:1fr}.work{grid-template-columns:1fr}header{padding-top:80px}.hero-card{max-width:360px}}
+    @media (max-width:560px){.wrap{width:min(100% - 24px,1180px)}.nav-inner{padding:12px 14px}.pill{padding:9px 12px}h1{font-size:54px}.contact{padding:26px}.foot{flex-direction:column;gap:8px}}
+  </style>
+</head>
+<body>
+  <div class="noise"></div>
+  <nav class="wrap">
+    <div class="nav-inner">
+      <a class="brand" href="#top">SHAYAN<span>.</span></a>
+      <div class="links">
+        <a href="#focus">Focus</a><a href="#work">Work</a><a href="#about">About</a>
+        <a class="pill" href="#contact">Connect</a>
+      </div>
+    </div>
+  </nav>
+
+  <main id="top">
+    <header class="wrap">
+      <div class="eyebrow reveal"><span class="dot"></span> Research · Innovation · Intelligent Systems</div>
+      <h1 class="reveal">Where <span class="gradient-text">medicine</span>, AI and strategy become one system.</h1>
+      <div class="hero-grid">
+        <div>
+          <p class="lede reveal">I’m Shayan Daniari — building at the intersection of clinical thinking, medical research, artificial intelligence and high-leverage strategy.</p>
+          <div class="actions reveal"><a class="btn primary" href="#work">Explore selected work →</a><a class="btn" href="#contact">Start a conversation</a></div>
+        </div>
+        <aside class="hero-card reveal"><strong>AI × MD</strong><p>Evidence first. Systems thinking. Built for real-world impact.</p></aside>
+      </div>
+    </header>
+
+    <section id="focus" class="wrap">
+      <div class="section-kicker reveal">Core focus</div>
+      <h2 class="reveal">Three disciplines.<br>One direction.</h2>
+      <p class="section-copy reveal">Complex problems rarely respect disciplinary borders. My work combines evidence, computation and decision design to move from idea to measurable outcome.</p>
+      <div class="cards">
+        <article class="card reveal"><div class="num">01 / MEDICINE</div><h3>Clinical & reproductive science</h3><p>Evidence synthesis, women’s health, fertility, translational medicine and clinically meaningful research design.</p></article>
+        <article class="card reveal"><div class="num">02 / AI</div><h3>Predictive intelligence</h3><p>Machine learning, medical datasets, risk prediction, model interpretation and responsible decision-support systems.</p></article>
+        <article class="card reveal"><div class="num">03 / STRATEGY</div><h3>From complexity to action</h3><p>Clear frameworks, product thinking, communication systems and execution plans for research and ambitious ventures.</p></article>
+      </div>
+    </section>
+
+    <section id="work" class="wrap">
+      <div class="section-kicker reveal">Selected work</div>
+      <h2 class="reveal">Research with a bias toward usefulness.</h2>
+      <div class="work">
+        <article class="project reveal"><div><small>Machine Learning · IVF</small><h3>Outcome prediction in euploid embryo transfer</h3><p>Comparative modeling across ensemble algorithms with cross-validation, calibration and clinically interpretable outputs.</p></div><div class="tagrow"><span class="tag">XGBoost</span><span class="tag">LightGBM</span><span class="tag">Random Forest</span><span class="tag">Explainability</span></div></article>
+        <article class="project reveal"><div><small>Systematic Review · Reproductive Health</small><h3>Adolescent endometriosis & adenomyosis</h3><p>Structured evidence mapping across medical, interventional and surgical strategies, designed for meta-analytic synthesis.</p></div><div class="tagrow"><span class="tag">PRISMA</span><span class="tag">Meta-analysis</span><span class="tag">Evidence synthesis</span></div></article>
+        <article class="project reveal"><div><small>Clinical Protocol · Oncofertility</small><h3>Fertility preservation pathways</h3><p>Decision frameworks spanning cancer treatment, timing, stimulation strategy, fertility preservation and survivorship.</p></div><div class="tagrow"><span class="tag">Oncofertility</span><span class="tag">Guideline synthesis</span><span class="tag">Decision pathways</span></div></article>
+        <article class="project reveal"><div><small>Risk Prediction · Urology</small><h3>Post-ureteroscopy urosepsis risk model</h3><p>Clinical risk modeling for patients with type 2 diabetes, integrating prediction performance, calibration and interpretability.</p></div><div class="tagrow"><span class="tag">Risk model</span><span class="tag">Calibration</span><span class="tag">SHAP</span></div></article>
+      </div>
+    </section>
+
+    <section id="about" class="wrap">
+      <div class="split">
+        <div><div class="section-kicker reveal">About</div><p class="quote reveal">I’m interested in the point where rigorous science stops being a paper and starts becoming a better decision.</p></div>
+        <div class="facts reveal"><div class="fact"><strong>Primary lens</strong><span>Medicine + AI</span></div><div class="fact"><strong>Working style</strong><span>Evidence → model → action</span></div><div class="fact"><strong>Research mode</strong><span>Cross-disciplinary</span></div><div class="fact"><strong>Design principle</strong><span>Clarity over noise</span></div></div>
+      </div>
+    </section>
+
+    <section id="contact" class="wrap">
+      <div class="contact reveal">
+        <div><div class="section-kicker">Contact</div><h2>Build something that matters.</h2><p class="section-copy">For research collaboration, medical AI, strategy or an ambitious new project, send a note here.</p></div>
+        <form name="contact" method="POST" data-netlify="true"><input type="hidden" name="form-name" value="contact"><input class="field" name="name" placeholder="Your name" required><input class="field" type="email" name="email" placeholder="Email" required><textarea class="field" name="message" placeholder="Tell me what you're building" required></textarea><button class="btn primary submit" type="submit">Send message →</button></form>
+      </div>
+    </section>
+  </main>
+
+  <footer class="wrap"><div class="foot"><span>© <span id="year"></span> Shayan Daniari</span><span>AI × Medicine × Strategy</span></div></footer>
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+    const io = new IntersectionObserver(entries => entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('show'); }), {threshold:.12});
+    document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+  </script>
+</body>
+</html>
