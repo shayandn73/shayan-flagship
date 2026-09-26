@@ -129,13 +129,14 @@ const server=http.createServer(async(req,res)=>{
 });
 server.listen(PORT,()=>console.log('NINA_LEARNER_LISTEN',PORT));
 async function init(){
+  let pool, phase="configuration";
   try{
     if(!process.env.DATABASE_URL)throw Error('DATABASE_URL_missing');
     const {default:pg}=await import('pg');
-    const pool=new pg.Pool({connectionString:process.env.DATABASE_URL,max:3,connectionTimeoutMillis:5000});
-    store=createStore(pool);await store.migrate();
-    const seed=JSON.parse(process.env.NINA_LEGACY_BOOTSTRAP||'{}');await store.importLegacy(seed);
-    await store.saveWeights(weights);
+    pool=new pg.Pool({connectionString:process.env.DATABASE_URL,max:3,connectionTimeoutMillis:5000});
+    store=createStore(pool);phase="migration";await store.migrate();
+    phase="legacy_import";const seed=JSON.parse(process.env.NINA_LEGACY_BOOTSTRAP||'{}');await store.importLegacy(seed);
+    phase="restore";await store.saveWeights(weights);
     const previousModel=await store.state('learner');
     const saved=await store.load();
     restoration={restoredAt:new Date().toISOString(),open:saved.open.length,outcomes:saved.closed.length,weightsLoaded:!!saved.weights,modelStateLoaded:!!previousModel,previousModel,summary:await store.summary(),weightsDigest:createHash('sha256').update(JSON.stringify(saved.weights)).digest('hex'),outcomeIds:saved.closed.slice(-10).map(s=>s.id),signalIds:saved.open.slice(0,10).map(s=>s.id)};
@@ -143,6 +144,6 @@ async function init(){
     closed.push(...saved.closed);if(saved.weights)Object.assign(weights,saved.weights);
     dbReady=true;storageError=null;
     connectMarket();connectPublic();connectFunding();setInterval(cycle,30000);setTimeout(cycle,12000);
-  }catch(e){storageError='database_initialization_failed';console.error('NINA_LEARNER_STORAGE_UNAVAILABLE');setTimeout(init,30000)}
+  }catch(e){dbReady=false;store=null;storageError='database_initialization_failed';console.error('NINA_LEARNER_STORAGE_UNAVAILABLE',JSON.stringify({phase,code:/^[A-Z0-9_]{2,32}$/.test(e.code||'')?e.code:'UNKNOWN'}));if(pool)await pool.end().catch(()=>{});setTimeout(init,30000)}
 }
 init();
