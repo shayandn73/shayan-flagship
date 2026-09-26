@@ -1,0 +1,1 @@
+{"name":"nina-market-intelligence","version":"1.2.1","private":true,"type":"module","scripts":{"test":"node --test nina-*.test.mjs"},"dependencies":{"pg":"8.16.3","ws":"8.18.3"}}
