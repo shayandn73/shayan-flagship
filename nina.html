@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="description" content="NINA Market Intelligence Mission Control — source quality, candidates and shadow learning."/>
+<title>NINA Mission Control</title>
+<style>
+:root{--bg:#07090d;--panel:#101621;--panel2:#121a27;--line:#22304a;--text:#edf4ff;--muted:#93a4bf;--cyan:#65e6ff;--green:#65e39b;--yellow:#ffd166;--red:#ff7b86;--purple:#b7a4ff;--r:20px}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 10% 0%,#11243f55,transparent 28%),radial-gradient(circle at 95% 5%,#17392d44,transparent 25%),var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.wrap{width:min(1320px,calc(100% - 28px));margin:auto}.top{position:sticky;top:0;z-index:20;background:#07090dcc;backdrop-filter:blur(18px);border-bottom:1px solid var(--line)}.bar{display:flex;align-items:center;justify-content:space-between;padding:14px 0}.brand{font-weight:900;letter-spacing:-.04em}.brand b{color:var(--cyan)}.nav{display:flex;gap:10px;align-items:center}.btn{display:inline-flex;gap:8px;align-items:center;border:1px solid var(--line);background:#111927;color:var(--text);padding:10px 13px;border-radius:12px;text-decoration:none;cursor:pointer}.btn:hover{border-color:#48678f}.hero{padding:44px 0 22px}.eyebrow{color:var(--cyan);font-weight:800;letter-spacing:.12em;font-size:12px}.hero h1{font-size:clamp(40px,7vw,86px);line-height:.96;letter-spacing:-.065em;margin:12px 0 16px}.hero p{color:var(--muted);font-size:17px;max-width:850px}.statusline{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}.chip{border:1px solid var(--line);background:#0d141f;padding:7px 10px;border-radius:999px;font-size:12px;color:var(--muted)}.chip.good{color:var(--green)}.chip.bad{color:var(--red)}.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:14px;margin:16px 0}.card{background:linear-gradient(150deg,var(--panel),#0c121c);border:1px solid var(--line);border-radius:var(--r);padding:18px;box-shadow:0 18px 60px #0005}.metric{grid-column:span 3}.wide{grid-column:span 8}.side{grid-column:span 4}.full{grid-column:1/-1}.label{font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:800}.value{font-size:30px;font-weight:900;letter-spacing:-.04em;margin-top:6px}.small{font-size:13px;color:var(--muted)}table{width:100%;border-collapse:collapse;margin-top:12px;font-size:13px}th,td{padding:10px 8px;border-bottom:1px solid #1e2b40;text-align:right}th:first-child,td:first-child{text-align:left}th{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.08em}.LONG{color:var(--green);font-weight:800}.SHORT{color:var(--red);font-weight:800}.PRE_IMPULSE_A,.PRE_IMPULSE_B{color:var(--cyan)}.TRIGGER_PENDING{color:var(--yellow)}.WATCHLIST,.EARLY_WATCH{color:#c6bdf7}.REJECT,.LATE_DO_NOT_CHASE{color:#8190a6}.health{display:grid;gap:9px;margin-top:12px}.row{display:flex;justify-content:space-between;gap:16px;border-bottom:1px solid #1e2b40;padding:8px 0}.dot{width:8px;height:8px;border-radius:99px;background:var(--red);display:inline-block;margin-right:7px}.dot.ok{background:var(--green);box-shadow:0 0 12px #65e39b77}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;overflow-wrap:anywhere}.connector{border:1px dashed #355071;background:#0b121c;padding:14px;border-radius:14px;margin-top:12px}.footer{color:var(--muted);font-size:12px;padding:30px 0 50px}.skeleton{opacity:.55;animation:pulse 1.1s infinite alternate}@keyframes pulse{to{opacity:.25}}@media(max-width:900px){.metric{grid-column:span 6}.wide,.side{grid-column:1/-1}.hideM{display:none}}@media(max-width:560px){.metric{grid-column:1/-1}.nav .home{display:inline-flex}.hero{padding-top:28px}th,td{padding:8px 5px}.hideS{display:none}}
+</style>
+</head>
+<body>
+<div class="top"><div class="wrap bar"><div class="brand">NINA<b>.</b> Mission Control</div><div class="nav"><a class="btn home" href="index.html">← Home</a><button class="btn" id="refresh">↻ Refresh</button></div></div></div>
+<main class="wrap">
+<section class="hero"><div class="eyebrow">MARKET RESEARCH · MANUAL EXECUTION</div><h1>One control room.<br>Every NINA layer.</h1><p>Technical structure, early warnings, public context and shadow learning with explicit evidence limits. Candidate prices are Binance references until source timestamps and Ourbit contracts are verified.</p><div class="statusline"><span id="liveChip" class="chip">Checking gateway…</span><span id="timeChip" class="chip">—</span><span class="chip">Ourbit direct price: unavailable</span></div></section>
+<section class="grid">
+<div class="card metric"><div class="label">Fresh sources</div><div id="fresh" class="value skeleton">—</div><div class="small">Must include live technical feed</div></div>
+<div class="card metric"><div class="label">Market regime</div><div id="regime" class="value skeleton">—</div><div id="regimeSub" class="small">Fundamental context</div></div>
+<div class="card metric"><div class="label">Shadow trades</div><div id="shadow" class="value skeleton">—</div><div id="shadowSub" class="small">PostgreSQL state</div></div>
+<div class="card metric"><div class="label">Learner avg R</div><div id="avgR" class="value skeleton">—</div><div id="avgRSub" class="small">Promotion remains gated</div></div>
+<div class="card wide"><div class="label">Candidate race</div><div class="small">Reference prices can be stale. No row is executable without current Ourbit contract proof.</div><div style="overflow:auto"><table><thead><tr><th>Symbol</th><th>Side</th><th>Score</th><th>State</th><th>Price reference</th><th class="hideS">1m%</th><th class="hideS">5m%</th><th class="hideM">Flow</th><th class="hideM">Depth</th><th>Evidence</th></tr></thead><tbody id="candidates"><tr><td colspan="10" class="small">Loading…</td></tr></tbody></table></div></div>
+<div class="card side"><div class="label">Source health</div><div id="health" class="health"><div class="small">Loading…</div></div><div id="warning" class="small" role="status"></div></div>
+<div class="card full"><div class="label">ChatGPT / Agent connector</div><p class="small">Astra or another authorized agent should use the gateway instead of scraping the dashboard. Public access is intentionally read-only; code/deployment writes stay behind GitHub/Render authorization.</p><div class="connector"><div class="small">OpenAPI</div><div class="mono">https://nina-gateway-v11.onrender.com/openapi.json</div></div><div class="connector"><div class="small">Consolidated live state</div><div class="mono">https://nina-gateway-v11.onrender.com/api/live</div></div></div>
+</section>
+<div class="footer">NINA Mission Control v1.2.1 · Freshness guard enabled · No stale snapshot may be labeled live.</div>
+</main>
+<script>
+const G='https://nina-gateway-v11.onrender.com';
+const $=id=>document.getElementById(id);
+const fmt=v=>v==null||!Number.isFinite(Number(v))?'—':String(Math.round(Number(v)*1000)/1000);
+const age=ms=>ms==null?'unknown':ms<60000?Math.max(0,Math.round(ms/1000))+'s':Math.round(ms/60000)+'m';
+let busy=false,lastSuccess=0;
+function cell(tr,value,cls){const td=document.createElement('td');td.textContent=String(value??'—');if(cls)td.classList.add(cls);tr.append(td)}
+function clear(id){$(id).replaceChildren()}
+function unavailable(message){
+ $('liveChip').className='chip bad';$('liveChip').textContent='● GATEWAY UNAVAILABLE';
+ $('timeChip').textContent='—';$('fresh').textContent='—';$('regime').textContent='—';
+ $('shadow').textContent='—';$('avgR').textContent='—';$('warning').textContent=message;
+ clear('candidates');const tr=document.createElement('tr');cell(tr,'No verified candidates available.');$('candidates').append(tr);
+ clear('health');
+}
+async function get(path){const ctl=new AbortController(), timer=setTimeout(()=>ctl.abort(),12000);
+ try{const r=await fetch(G+path,{cache:'no-store',signal:ctl.signal});if(!r.ok)throw Error('Gateway HTTP '+r.status);return await r.json()}
+ finally{clearTimeout(timer)}
+}
+async function load(){
+ if(busy)return;busy=true;
+ $('liveChip').className='chip';$('liveChip').textContent='Refreshing…';
+ try{
+   const [h,t]=await Promise.all([get('/health'),get('/api/top')]);
+   const atCheck=Date.parse(t.at); if(!Number.isFinite(atCheck)||Date.now()-atCheck>90000||atCheck-Date.now()>5000)throw Error('Stale or invalid gateway snapshot');
+   lastSuccess=Date.now(); const ok=h.ok===true&&t.status==='READY';
+   $('liveChip').className='chip '+(ok?'good':'bad');
+   $('liveChip').textContent=ok?'● SOURCES READY':'● DEGRADED / NO TRADE';
+   const at=Date.parse(t.at);$('timeChip').textContent=Number.isFinite(at)?'Gateway '+new Date(at).toLocaleTimeString():'Gateway time unknown';
+   $('fresh').textContent=(h.freshCount??0)+' / '+(h.totalSources??0);
+   const fg=t.regime?.fearGreed;$('regime').textContent=fg?.value??'—';$('regimeSub').textContent=fg?.class||'No verified regime data';
+   $('shadow').textContent=fmt(t.learnerSummary?.closed);
+   $('shadowSub').textContent='active '+fmt(t.learnerSummary?.active)+' · win '+fmt(t.learnerSummary?.winRate)+'%';
+   $('avgR').textContent=fmt(t.learnerSummary?.avgR);
+   $('avgRSub').textContent='Shadow only · '+(t.learnerSummary?.storage?.persistent?'PostgreSQL connected':'Persistence unavailable');
+   for(const id of ['fresh','regime','shadow','avgR'])$(id).classList.remove('skeleton');
+   clear('health');for(const [name,s] of Object.entries(h.sources||{})){
+     const line=document.createElement('div');line.className='row';
+     const left=document.createElement('span'),dot=document.createElement('span');dot.className='dot'+(s.usable?' ok':'');left.append(dot,document.createTextNode(name));
+     const right=document.createElement('span');right.className='small';right.textContent=(s.usable?'usable':'degraded')+' · '+age(s.ageMs);
+     line.append(left,right);$('health').append(line);
+   }
+   $('warning').textContent=(t.warnings||[]).join(' · ')||'Ourbit contract and direct pricing remain unverified.';
+   clear('candidates');const rows=(t.top||[]).filter(x=>{const at=Date.parse(x.priceAt);const alert=x.alertAt==null?Date.now():Date.parse(x.alertAt);return x.priceFresh&&Number.isFinite(at)&&Date.now()-at<=90000&&at-Date.now()<=5000&&Number.isFinite(alert)&&Date.now()-alert<=90000}).slice(0,12);
+   for(const x of rows){const tr=document.createElement('tr');tr.dataset.expires=String(Math.min(Date.parse(x.priceAt),x.alertAt?Date.parse(x.alertAt):Infinity)+90000);
+     cell(tr,x.symbol);cell(tr,x.side,['LONG','SHORT'].includes(x.side)?x.side:null);cell(tr,fmt(x.score));
+     cell(tr,x.state,['EARLY_WATCH','LATE_DO_NOT_CHASE','WATCHLIST'].includes(x.state)?x.state:null);
+     cell(tr,fmt(x.price)+(x.priceFresh?'':' (unverified)'));cell(tr,fmt(x.m1),'hideS');cell(tr,fmt(x.m5),'hideS');
+     cell(tr,fmt(x.flow),'hideM');cell(tr,fmt(x.depth),'hideM');cell(tr,(x.origins||[]).join(', ')+' · Ourbit '+(x.ourbit?.status||'UNVERIFIED')+' · missing '+Object.entries(x.evidence||{}).filter(([,v])=>v.status!=='AVAILABLE').map(([k])=>k).join(', '));$('candidates').append(tr);
+   }
+   if(!rows.length){const tr=document.createElement('tr');cell(tr,'No candidates pass current source checks.');$('candidates').append(tr)}
+ }catch(e){unavailable(String(e.message||e))}
+ finally{busy=false}
+}
+$('refresh').addEventListener('click',load);load();setInterval(load,15000);setInterval(()=>{for(const tr of document.querySelectorAll('#candidates tr[data-expires]'))if(Date.now()>Number(tr.dataset.expires))tr.remove();if(lastSuccess&&Date.now()-lastSuccess>30000)unavailable('Gateway update overdue; candidates cleared.');},1000);
+</script>
+</body></html>
