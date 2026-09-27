@@ -76,7 +76,7 @@ test('read-only HTTP contract rejects writes and unknown paths',async()=>{
 
 test('verified contract does not promote a price without its own timestamp',()=>{
   const proof=parseEligibility({data:[{symbol:'SOL_USDT',status:'TRADING'}]},
-    {data:[{symbol:'SOL_USDT'}]},at);
+    {data:[{symbol:'SOL_USDT',timestamp:at,bidPrice:'10',askPrice:'10.1'}]},at);
   const x=buildSnapshot(ready,at,proof);
   assert.equal(x.top[0].ourbit.available,true);
   assert.equal(x.top[0].executable,false);
