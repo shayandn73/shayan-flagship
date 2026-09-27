@@ -183,7 +183,7 @@ const server=http.createServer((req,res)=>{
     if(u.pathname==='/ready'&&!h.ok)res.statusCode=503;res.end(JSON.stringify(h)); return;
   }
   if(u.pathname==='/api/context'){
-    res.end(JSON.stringify({at:new Date().toISOString(),version:state.version,regime:state.regime,topSocial:topSocial(),sources:Object.fromEntries(state.sources)})); return;
+    res.end(JSON.stringify({at:new Date().toISOString(),lastCycleAt:state.lastCycleAt,version:state.version,regime:state.regime,topSocial:topSocial(),sources:Object.fromEntries(state.sources)})); return;
   }
   if(u.pathname.startsWith('/api/symbol/')){
     res.end(JSON.stringify(symbolContext(decodeURIComponent(u.pathname.split('/').pop())))); return;
