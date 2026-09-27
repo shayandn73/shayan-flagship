@@ -65,7 +65,7 @@ test('missing OI, flow, depth and funding timestamps are unknown even when upstr
 });
 
 test('read-only HTTP contract rejects writes and unknown paths',async()=>{
-  const server=createServer({collect:async()=>({ok:false,error:'offline'}),eligibilityProvider:async()=>({ok:false,reason:'offline'})});
+  const server=createServer({legacyRedirect:null,collect:async()=>({ok:false,error:'offline'}),eligibilityProvider:async()=>({ok:false,reason:'offline'})});
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
   try {
     const base=`http://127.0.0.1:${server.address().port}`;
