@@ -3,7 +3,7 @@ import http from 'http';
 import WebSocket from 'ws';
 import {createStore} from './nina-store.mjs';
 import {randomUUID,createHash} from 'node:crypto';
-const VERSION='1.2.1';const bootId=randomUUID(),bootAt=new Date().toISOString();
+const VERSION='1.2.2';const bootId=randomUUID(),bootAt=new Date().toISOString();
 let restoration=null;
 
 const PORT=process.env.PORT||10000;
@@ -121,7 +121,14 @@ const server=http.createServer(async(req,res)=>{
   if(!['GET','HEAD'].includes(req.method)){res.statusCode=405;return res.end();}
   try{
   res.setHeader('content-type','application/json');
-  if(req.url==='/health') return res.end(JSON.stringify({ok:dbReady,storagePersistent:dbReady,storageError:dbReady?null:storageError,version:VERSION,at:new Date().toISOString(),bootId,bootAt,restoration}));
+  if(req.url==='/health'||req.url==='/ready'){
+    let databaseAvailable=false,dbError=null;
+    if(dbReady&&store){try{await store.summary();databaseAvailable=true}catch(e){dbError=e.code||e.name||'query_failed'}}
+    const cycleAt=globalThis.lastReport?.at||null,cycleAgeMs=cycleAt?Date.now()-Date.parse(cycleAt):null;
+    const reasons=[];if(!databaseAvailable)reasons.push('learner_database_unavailable');if(globalThis.lastReport?.mode&&globalThis.lastReport.mode!=='SHADOW_ONLY')reasons.push('wrong_learner_mode');if(cycleAgeMs==null||cycleAgeMs>90000)reasons.push('learner_cycle_stale');
+    const h={ok:reasons.length===0,reasons,storagePersistent:databaseAvailable,storageError:dbError||storageError,mode:'SHADOW_ONLY',version:VERSION,commit:process.env.RENDER_GIT_COMMIT||null,at:new Date().toISOString(),cycleAt,cycleAgeMs,bootId,bootAt,restoration};
+    if(req.url==='/ready'&&!h.ok)res.statusCode=503;return res.end(JSON.stringify(h));
+  }
   if(req.url==='/api/learner') return res.end(JSON.stringify(dbReady?(globalThis.lastReport||{ok:false,warming:true,at:new Date().toISOString()}):{ok:false,at:new Date().toISOString(),error:'persistent_storage_unavailable'}));
   if(req.url==='/api/history'){if(!dbReady){res.statusCode=503;return res.end(JSON.stringify({error:'storage_unavailable'}));}return res.end(JSON.stringify({at:new Date().toISOString(),version:VERSION,items:await store.history(),summary:await store.summary()}));}
   if(req.url==='/api/shadow') return res.end(JSON.stringify({active:[...shadow.values()],closed:closed.slice(-100)}));
