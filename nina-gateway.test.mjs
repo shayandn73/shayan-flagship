@@ -6,9 +6,9 @@ import {parseEligibility} from './nina-ourbit.mjs';
 const at = Date.parse('2026-09-25T22:00:00Z');
 const source = (data, lag = 1000) => ({ok:true,status:200,data:{at:new Date(at-lag).toISOString(),...data}});
 const ready = {
-  technical:source({feeds:{binanceMarket:true,binanceDetail:true},top:[{symbol:'SOLUSDT',side:'LONG',score:88,state:'EXECUTABLE_CANDIDATE',price:200,m1:.1,m5:.2}]}),
-  preimpulse:source({marketUp:true,detailMarketUp:true,publicUp:true,alerts:[{symbol:'SOLUSDT',side:'LONG',score:92,price:201,m1:.1,m5:.2,at:new Date(at-1000).toISOString()}]}),
-  fundamental:source({regime:{}}),
+  technical:source({feeds:{binanceMarket:true,binanceDetail:true},lastMarketAt:new Date(at-1000).toISOString(),lastDetailAt:new Date(at-1000).toISOString(),top:[{symbol:'SOLUSDT',side:'LONG',score:88,state:'EXECUTABLE_CANDIDATE',price:200,m1:.1,m5:.2}]}),
+  preimpulse:source({marketUp:true,detailMarketUp:true,publicUp:true,lastMarketAt:new Date(at-1000).toISOString(),lastDetailAt:new Date(at-1000).toISOString(),alerts:[{symbol:'SOLUSDT',side:'LONG',score:92,price:201,m1:.1,m5:.2,at:new Date(at-1000).toISOString()}]}),
+  fundamental:source({regime:{},lastCycleAt:new Date(at-1000).toISOString()}),
   learner:source({mode:'SHADOW_ONLY',closed:3,avgR:1,promotionEligible:true})
 };
 
@@ -28,6 +28,9 @@ test('stale, future, missing timestamps, disconnected feeds and HTTP failures ar
   assert.deepEqual(inspectSource('learner',{ok:false,error:'HTTP 502'},at).reasons,['HTTP 502']);
   assert.equal(inspectSource('technical',source({feeds:{binanceMarket:false,binanceDetail:true}}),at).usable,false);
   assert.equal(inspectSource('fundamental',source({},-6000),at).usable,false);
+  const respondedNow=source({feeds:{binanceMarket:true,binanceDetail:true},lastMarketAt:new Date(at-91000).toISOString(),lastDetailAt:new Date(at-1000).toISOString()});
+  assert.equal(inspectSource('technical',respondedNow,at).usable,false);
+  assert.ok(inspectSource('technical',respondedNow,at).reasons.includes('lastMarketAt_missing_or_stale'));
 });
 
 test('late impulse and stale technical source cannot be promoted',()=>{
