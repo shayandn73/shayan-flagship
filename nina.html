@@ -23,7 +23,7 @@
 <div class="card side"><div class="label">Source health</div><div id="health" class="health"><div class="small">Loading…</div></div><div id="warning" class="small" role="status"></div></div>
 <div class="card full"><div class="label">ChatGPT / Agent connector</div><p class="small">Astra or another authorized agent should use the gateway instead of scraping the dashboard. Public access is intentionally read-only; code/deployment writes stay behind GitHub/Render authorization.</p><div class="connector"><div class="small">OpenAPI</div><div class="mono">https://nina-gateway-v11.onrender.com/openapi.json</div></div><div class="connector"><div class="small">Consolidated live state</div><div class="mono">https://nina-gateway-v11.onrender.com/api/live</div></div></div>
 </section>
-<div class="footer">NINA Mission Control v1.2.1 · Freshness guard enabled · No stale snapshot may be labeled live.</div>
+<div class="footer">NINA Mission Control v1.2.2 · Freshness guard enabled · No stale snapshot may be labeled live.</div>
 </main>
 <script>
 const G='https://nina-gateway-v11.onrender.com';
@@ -50,9 +50,9 @@ async function load(){
  try{
    const t=await get('/api/live'),h=t;
    const atCheck=Date.parse(t.at); if(!Number.isFinite(atCheck)||Date.now()-atCheck>90000||atCheck-Date.now()>5000)throw Error('Stale or invalid gateway snapshot');
-   lastSuccess=Date.now(); const ok=t.overallFresh===true&&t.status==='READY';
+   lastSuccess=Date.now(); const ok=t.health?.marketDataHealth==='READY';
    $('liveChip').className='chip '+(ok?'good':'bad');
-   $('liveChip').textContent=ok?'● SOURCES READY':'● DEGRADED / NO TRADE';
+   $('liveChip').textContent=ok?'● MARKET DATA READY':'● MARKET DATA DEGRADED';
    const at=Date.parse(t.at);$('timeChip').textContent=Number.isFinite(at)?'Gateway '+new Date(at).toLocaleTimeString():'Gateway time unknown';
    $('fresh').textContent=(h.freshCount??0)+' / '+(h.totalSources??0);
    const fg=t.regime?.fearGreed;$('regime').textContent=fg?.value??'—';$('regimeSub').textContent=fg?.class||'No verified regime data';
@@ -67,7 +67,7 @@ async function load(){
      const right=document.createElement('span');right.className='small';right.textContent=(s.usable?'usable':'degraded')+' · '+age(s.ageMs);
      line.append(left,right);$('health').append(line);
    }
-   $('warning').textContent=(t.warnings||[]).join(' · ')||'Ourbit contract and direct pricing remain unverified.';
+   $('warning').textContent='Execution: '+(t.health?.executionReadiness||'UNVERIFIED')+' · Research: '+(t.health?.fundamentalHealth||'UNAVAILABLE')+' · Learner: '+(t.health?.learnerHealth||'UNAVAILABLE')+' · '+((t.warnings||[]).join(' · ')||'No source warning.');
    clear('candidates');const rows=(t.top||[]).filter(x=>{const at=Date.parse(x.priceAt);const alert=x.alertAt==null?Date.now():Date.parse(x.alertAt);return x.priceFresh&&Number.isFinite(at)&&Date.now()-at<=90000&&at-Date.now()<=5000&&Number.isFinite(alert)&&Date.now()-alert<=90000}).slice(0,12);
    for(const x of rows){const tr=document.createElement('tr');tr.dataset.expires=String(Math.min(Date.parse(x.priceAt),x.alertAt?Date.parse(x.alertAt):Infinity)+90000);
      cell(tr,x.symbol);cell(tr,x.side,['LONG','SHORT'].includes(x.side)?x.side:null);cell(tr,fmt(x.score));
