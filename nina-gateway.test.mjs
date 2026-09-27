@@ -77,6 +77,18 @@ test('read-only HTTP contract rejects writes and unknown paths',async()=>{
   } finally {server.close();}
 });
 
+test('legacy Gateway only redirects read-only requests to the canonical origin',async()=>{
+  const server=createServer({legacyRedirect:'https://nina-gateway-v11.onrender.com/',collect:async()=>{throw Error('must not poll sources')}});
+  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+  try{const base=`http://127.0.0.1:${server.address().port}`;
+    const r=await fetch(base+'/api/live?scope=test',{redirect:'manual'});
+    assert.equal(r.status,308);assert.equal(r.headers.get('location'),'https://nina-gateway-v11.onrender.com/api/live?scope=test');
+    const odd=await fetch(base+'//example.com/api/live',{redirect:'manual'});
+    assert.equal(new URL(odd.headers.get('location')).hostname,'nina-gateway-v11.onrender.com');
+    assert.equal((await fetch(base+'/api/live',{method:'POST'})).status,405);
+  }finally{server.close()}
+});
+
 test('verified contract does not promote a price without its own timestamp',()=>{
   const proof=parseEligibility({data:[{symbol:'SOL_USDT',status:'TRADING'}]},
     {data:[{symbol:'SOL_USDT',timestamp:at,bidPrice:'10',askPrice:'10.1'}]},at);
