@@ -116,7 +116,7 @@ const server=http.createServer((req,res)=>{
  res.setHeader('access-control-allow-origin','*');res.setHeader('cache-control','no-store');if(!['GET','HEAD'].includes(req.method)){res.statusCode=405;return res.end();}
  if(req.url==='/'){res.writeHead(302,{Location:'https://nina-dashboard-v1.onrender.com/'});return res.end();}
   if(req.url==='/health'||req.url==='/ready'){const h=health();res.setHeader('content-type','application/json');if(req.url==='/ready'&&!h.ok)res.statusCode=503;return res.end(JSON.stringify(h))}
-  if(req.url==='/api/preimpulse'){res.setHeader('content-type','application/json');return res.end(JSON.stringify({at:new Date().toISOString(),universe:state.symbols.size,marketUp:state.marketUp,detailMarketUp:state.detailMarketUp,publicUp:state.publicUp,version:'1.2.1',alertAgeLimitMs:90000,alerts:state.alerts.filter(a=>fresh(a.ts)&&fresh(a.priceAt)),watch:state.watch.filter(a=>fresh(a.priceAt))}))}
+  if(req.url==='/api/preimpulse'){res.setHeader('content-type','application/json');return res.end(JSON.stringify({at:new Date().toISOString(),lastMarketAt:state.lastMarketAt?new Date(state.lastMarketAt).toISOString():null,lastDetailAt:state.lastDetailAt?new Date(state.lastDetailAt).toISOString():null,universe:state.symbols.size,marketUp:state.marketUp,detailMarketUp:state.detailMarketUp,publicUp:state.publicUp,version:'1.2.2',alertAgeLimitMs:90000,alerts:state.alerts.filter(a=>fresh(a.ts)&&fresh(a.priceAt)),watch:state.watch.filter(a=>fresh(a.priceAt))}))}
   res.setHeader('content-type','text/html');res.end(html);
 });
 server.listen(PORT,()=>console.log('NINA_PREIMPULSE_SERVER',PORT));
