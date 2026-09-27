@@ -33,7 +33,7 @@ function key(r){return r.symbol+':'+r.side}
 async function openShadow(r){
   const k=key(r);
   if(!dbReady||!r.ready||r.score<70||shadow.has(k)) return;
-  const sig={id:k+':'+Date.now(),symbol:r.symbol,side:r.side,entry:r.price,opened:Date.now(),score:r.score,
+  const sig={id:k+':'+Date.now(),symbol:r.symbol,side:r.side,entry:r.price,opened:Date.now(),lastObservedAt:Date.now(),dataGap:false,score:r.score,
     features:{m1:r.m1,m5:r.m5,flow:r.flow,depth:r.depth,funding:r.funding},mfe:0,mae:0,t1:false,stop:false,t1At:null,stopAt:null};
   if(await store.recordOpen(sig))shadow.set(k,sig);
 }
@@ -49,7 +49,7 @@ function updateWeights(sig,reward){
 async function finish(k,sig,reason,px){
   const R=(sig.side==='LONG'?1:-1)*100*(px-sig.entry)/sig.entry/0.4;
   const rec={...sig,closed:Date.now(),reason,exit:px,R:+R.toFixed(2),leadMs:sig.t1At?sig.t1At-sig.opened:null};
-  const before={...weights};if(!sig.legacy)updateWeights(sig,R>0?1:-1);
+  const before={...weights};if(!sig.legacy&&!sig.dataGap)updateWeights(sig,R>0?1:-1);
   try{if(!await store.recordClose(rec,weights)){Object.assign(weights,before);return}}
   catch(e){Object.assign(weights,before);throw e}
   closed.push(rec); if(closed.length>1000) closed.shift();shadow.delete(k);
@@ -63,6 +63,7 @@ async function cycle(){
   const by=new Map(ranked.map(r=>[r.symbol,r]));
   for(const [k,sig] of shadow){
     const r=by.get(sig.symbol); if(!r) continue;
+    if(Date.now()-(sig.lastObservedAt??sig.opened)>90000)sig.dataGap=true;sig.lastObservedAt=Date.now();
     const move=100*(sig.side==='LONG'?(r.price/sig.entry-1):((sig.entry-r.price)/sig.entry));
     sig.mfe=Math.max(sig.mfe,move); sig.mae=Math.min(sig.mae,move);
     if(!sig.t1&&move>=0.6){sig.t1=true;sig.t1At=Date.now();}
@@ -72,10 +73,10 @@ async function cycle(){
     else if(Date.now()-sig.opened>=3600000) await finish(k,sig,'HORIZON_60M',r.price);
     else await store.recordProgress(sig);
   }
-  const measured=closed.filter(x=>!x.legacy);const n=measured.length,w=measured.filter(x=>x.R>0).length;
+  const measured=closed.filter(x=>!x.legacy&&!x.dataGap&&Number.isFinite(x.lastObservedAt));const n=measured.length,w=measured.filter(x=>x.R>0).length;
   const avg=a=>a.length?a.reduce((s,x)=>s+x,0)/a.length:0;
   const report={at:new Date().toISOString(),version:VERSION,mode:'SHADOW_ONLY',universe:SYMBOLS.length,
-    top:ranked.slice(0,7),active:shadow.size,closed:n,legacyOutcomes:closed.length-n,totalOutcomes:closed.length,winRate:n?+(100*w/n).toFixed(1):null,
+    top:ranked.slice(0,7),active:shadow.size,closed:n,legacyOutcomes:closed.filter(x=>x.legacy).length,gapOutcomes:closed.filter(x=>!x.legacy&&(x.dataGap||!Number.isFinite(x.lastObservedAt))).length,totalOutcomes:closed.length,winRate:n?+(100*w/n).toFixed(1):null,
     avgR:+avg(measured.map(x=>x.R)).toFixed(2),avgMFE:+avg(measured.map(x=>x.mfe)).toFixed(3),avgMAE:+avg(measured.map(x=>x.mae)).toFixed(3),
     t1BeforeStop:n?+(100*measured.filter(x=>x.t1&&(!x.stopAt||x.t1At<=x.stopAt)).length/n).toFixed(1):null,
     challengerWeights:Object.fromEntries(Object.entries(weights).map(([k,v])=>[k,+v.toFixed(3)])),

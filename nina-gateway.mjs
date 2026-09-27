@@ -38,7 +38,7 @@ export function inspectSource(name, result, at = Date.now()) {
 export async function fetchSource(url, timeoutMs = 12_000) {
   const start = Date.now();
   try {
-    const response = await fetch(url, {signal:AbortSignal.timeout(timeoutMs), headers:{accept:'application/json', 'user-agent':'NINA-Gateway/1.1'}});
+    const response = await fetch(url, {signal:AbortSignal.timeout(timeoutMs), headers:{accept:'application/json', 'user-agent':'NINA-Gateway/1.2.1'}});
     if (!response.ok) return {ok:false,status:response.status,latencyMs:Date.now()-start,error:`HTTP ${response.status}`};
     const raw = await response.text();
     if (raw.length > 2_000_000) throw Error('oversized_response');
@@ -138,7 +138,7 @@ export function runtimeChecks(){
 }
 
 const schema = {openapi:'3.1.0',info:{title:'NINA Market Intelligence Gateway',version:VERSION,description:'Read-only, fail-closed research context. No execution API.'},
-  paths:Object.fromEntries(['/health','/api/live','/api/top','/api/preimpulse','/api/learner','/api/sources','/api/debug','/api/model-context','/api/symbol/{symbol}'].map(path=>[path,{get:{operationId:'get'+path.replace(/[^a-zA-Z]/g,'_'),responses:{200:{description:'Read-only snapshot'}}}}]))};
+  paths:Object.fromEntries(['/health','/api/live','/api/top','/api/preimpulse','/api/learner','/api/sources','/api/debug','/api/model-context','/api/symbol/{symbol}'].map(path=>[path,{get:{operationId:'get'+path.replace(/[^a-zA-Z]/g,'_'),...(path.includes('{symbol}')?{parameters:[{name:'symbol',in:'path',required:true,schema:{type:'string',pattern:'^[A-Za-z0-9]{2,25}USDT$'}}]}:{}),responses:{200:{description:'Read-only snapshot. Underlying observation timestamps govern freshness; unavailable evidence is null with UNKNOWN status. UNVERIFIED Ourbit contracts are never executable.',content:{'application/json':{schema:{type:'object',additionalProperties:true}}}}}}}]))};
 
 export function createServer({sourceUrls=endpoints, collect=fetchSource, eligibilityProvider=fetchEligibility}={}) {
   let flight = null;
@@ -161,10 +161,10 @@ export function createServer({sourceUrls=endpoints, collect=fetchSource, eligibi
       const x=await snapshot();
       if(path === '/health') return send(res,{ok:x.overallFresh && x.status==='READY',at:x.at,version:x.version,status:x.status,freshCount:x.freshCount,totalSources:x.totalSources,rules:x.rules,commit:x.commit,sources:Object.fromEntries(Object.entries(x.sources).map(([k,v])=>[k,{ok:v.ok,usable:v.usable,ageMs:v.ageMs,sourceAt:v.sourceAt,reasons:v.reasons,error:v.error}]))});
       if(path === '/api/live') return send(res,x);
-      if(path === '/api/top') return send(res,{at:x.at,overallFresh:x.overallFresh,status:x.status,top:x.top,regime:x.regime,learnerSummary:x.learnerSummary,warnings:x.warnings});
-      if(path === '/api/preimpulse') return send(res,{at:x.at,status:x.status,items:x.preimpulse,warnings:x.warnings});
+      if(path === '/api/top') return send(res,{at:x.at,version:x.version,rules:x.rules,overallFresh:x.overallFresh,status:x.status,top:x.top,regime:x.regime,learnerSummary:x.learnerSummary,warnings:x.warnings});
+      if(path === '/api/preimpulse') return send(res,{at:x.at,version:x.version,rules:x.rules,status:x.status,items:x.preimpulse,warnings:x.warnings});
       if(path === '/api/learner') return send(res,{at:x.at,source:x.sources.learner.sourceAt,metrics:x.learnerSummary,warnings:x.sources.learner.reasons});
-      if(path === '/api/sources') return send(res,{at:x.at,sources:Object.fromEntries(Object.entries(x.sources).map(([k,v])=>[k,{usable:v.usable,sourceAt:v.sourceAt,ageMs:v.ageMs,reasons:v.reasons,error:v.error}])),fundamental:x.fundamentalSources,ourbit:x.ourbit});
+      if(path === '/api/sources') return send(res,{at:x.at,version:x.version,rules:x.rules,sources:Object.fromEntries(Object.entries(x.sources).map(([k,v])=>[k,{usable:v.usable,sourceAt:v.sourceAt,ageMs:v.ageMs,reasons:v.reasons,error:v.error}])),fundamental:x.fundamentalSources,ourbit:x.ourbit});
       if(path === '/api/debug') return send(res,{at:x.at,version:x.version,commit:x.commit,warnings:x.warnings,rules:x.rules,selfTest:runtimeChecks()});
       if(path === '/api/model-context') return send(res,{at:x.at,status:x.status,warnings:x.warnings,ourbit:x.ourbit,version:x.version,rules:x.rules,candidates:x.top.slice(0,8),learner:x.learnerSummary});
       if(path.startsWith('/api/symbol/')) {const sym=symbol(decodeURIComponent(path.slice(12)));if(!sym){res.statusCode=400;return send(res,{error:'invalid_symbol'});}return send(res,{at:x.at,symbol:sym,candidates:x.top.filter(c=>c.symbol===sym),note:'Ourbit proof is per candidate; direct Ourbit pricing is unavailable'});}

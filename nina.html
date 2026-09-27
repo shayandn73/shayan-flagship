@@ -48,9 +48,9 @@ async function load(){
  if(busy)return;busy=true;
  $('liveChip').className='chip';$('liveChip').textContent='Refreshing…';
  try{
-   const [h,t]=await Promise.all([get('/health'),get('/api/top')]);
+   const t=await get('/api/live'),h=t;
    const atCheck=Date.parse(t.at); if(!Number.isFinite(atCheck)||Date.now()-atCheck>90000||atCheck-Date.now()>5000)throw Error('Stale or invalid gateway snapshot');
-   lastSuccess=Date.now(); const ok=h.ok===true&&t.status==='READY';
+   lastSuccess=Date.now(); const ok=t.overallFresh===true&&t.status==='READY';
    $('liveChip').className='chip '+(ok?'good':'bad');
    $('liveChip').textContent=ok?'● SOURCES READY':'● DEGRADED / NO TRADE';
    const at=Date.parse(t.at);$('timeChip').textContent=Number.isFinite(at)?'Gateway '+new Date(at).toLocaleTimeString():'Gateway time unknown';
