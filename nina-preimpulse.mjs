@@ -6,7 +6,7 @@ const PORT = process.env.PORT || 10000;
 const BASE_MARKET = 'wss://fstream.binance.com/market/stream';
 const BASE_PUBLIC = 'wss://fstream.binance.com/public/stream';
 const TOP_DETAIL = 36;
-const state = { marketUp:false, publicUp:false, detailMarketUp:false, symbols:new Map(), alerts:[], watch:[], events:0, detailEvents:0, started:Date.now() };
+const state = { marketUp:false, publicUp:false, detailMarketUp:false, symbols:new Map(), alerts:[], watch:[], events:0, detailEvents:0, lastMarketAt:0,lastDetailAt:0,malformed:0, started:Date.now() };
 const detailMarketSubs = new Set(), detailPublicSubs = new Set();
 let dmWs=null, dpWs=null, rankPrev=new Map(), alertSeq=0;
 
@@ -88,13 +88,13 @@ function evaluate(){
 function connectBase(){
   const ws=new WebSocket(BASE_MARKET);
   ws.on('open',()=>{state.marketUp=true;ws.send(JSON.stringify({method:'SUBSCRIBE',params:['!ticker@arr','!markPrice@arr@1s'],id:1}));});
-  ws.on('message',buf=>{let m;try{m=JSON.parse(buf)}catch{return}const z=m.data??m,arr=Array.isArray(z)?z:[z];for(const e of arr){if(e.e==='24hrTicker'||e.e==='24hrMiniTicker'){const x=S(e.s);x.p=num(e.c);x.priceAt=nullable(e.E);x.ch24=num(e.P);x.q24=num(e.q);x.pts.push({t:x.priceAt,p:x.p,q:x.q24});trim(x.pts,360000);}else if(e.e==='markPriceUpdate'){const x=S(e.s);x.mark=num(e.p);x.funding=nullable(e.r);x.fundingAt=nullable(e.E);}}state.events+=arr.length;});
+  ws.on('message',buf=>{let m;try{m=JSON.parse(buf)}catch{state.malformed++;return}const z=m.data??m,arr=Array.isArray(z)?z:[z];for(const e of arr){if(e.e==='24hrTicker'||e.e==='24hrMiniTicker'){const x=S(e.s);x.p=num(e.c);x.priceAt=nullable(e.E);x.ch24=num(e.P);x.q24=num(e.q);x.pts.push({t:x.priceAt,p:x.p,q:x.q24});trim(x.pts,360000);if(fresh(x.priceAt))state.lastMarketAt=x.priceAt;}else if(e.e==='markPriceUpdate'){const x=S(e.s);x.mark=num(e.p);x.funding=nullable(e.r);x.fundingAt=nullable(e.E);}}state.events+=arr.length;});
   ws.on('close',()=>{state.marketUp=false;setTimeout(connectBase,1800)});ws.on('error',()=>{});
 }
 function connectDetailMarket(){
   const ws=dmWs=new WebSocket(BASE_MARKET);
   ws.on('open',()=>{state.detailMarketUp=true;refreshDetail()});
-  ws.on('message',buf=>{let m;try{m=JSON.parse(buf)}catch{return}const z=m.data??m;if(!z?.s)return;const x=S(z.s),t=nullable(z.E);state.detailEvents++;
+  ws.on('message',buf=>{let m;try{m=JSON.parse(buf)}catch{state.malformed++;return}const z=m.data??m;if(!z?.s)return;const x=S(z.s),t=nullable(z.E);state.detailEvents++;if(fresh(t))state.lastDetailAt=t;
     if(z.e==='aggTrade'){x.trades.push({t,side:z.m?'sell':'buy',q:num(z.p)*num(z.q)});trim(x.trades,120000);}
     else if(z.e==='kline'){const k=z.k,o={t:num(k.t),at:t,o:num(k.o),h:num(k.h),l:num(k.l),c:num(k.c),v:num(k.q||k.v),closed:!!k.x};if(k.i==='1m')x.k1=o;else if(k.i==='5m')x.k5=o;}
     else if(z.e==='forceOrder'){const o=z.o;x.liq.push({t,side:o.S,q:num(o.ap||o.p)*num(o.z||o.q)});trim(x.liq,240000);}
@@ -110,10 +110,12 @@ function connectDetailPublic(){
 
 const html='<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>NINA Early Warning</title><style>body{font-family:system-ui;background:#0b0d12;color:#eef;margin:0;padding:18px}button{padding:12px 16px;border-radius:10px;border:0}.card{background:#151924;padding:14px;border-radius:14px;margin:10px 0}.hot{border:1px solid #ffb84d}.muted{opacity:.7}</style></head><body><h2>NINA Pre-Impulse v0.8</h2><p class="muted">EARLY_ALERT = before extension, not after the move.</p><button id="n">Enable browser alerts</button><div id="s"></div><script>let last=0;document.getElementById("n").onclick=async()=>{if("Notification"in window)await Notification.requestPermission()};async function tick(){try{const j=await (await fetch("/api/preimpulse")).json();let h="<div class=\\"card\\">Universe "+j.universe+" | base "+j.marketUp+" | detail "+j.detailMarketUp+"/"+j.publicUp+"</div>";for(const a of j.alerts.slice(0,8)){h+="<div class=\\"card hot\\"><b>"+a.symbol+" "+a.side+" "+a.score+"</b><br>price "+a.price+" | 1m "+a.m1+"% | 5m "+a.m5+"% | flow "+a.flow+" | depth "+a.depth+" | volx "+a.volAccel+"</div>";if(a.id>last&&Notification.permission==="granted")new Notification("NINA EARLY "+a.symbol+" "+a.side,{body:"Score "+a.score+" @ "+a.price});last=Math.max(last,a.id)}h+="<h3>Pre-watch</h3>";for(const a of j.watch.slice(0,8))h+="<div class=\\"card\\">"+a.symbol+" "+a.side+" "+a.score+" | m1 "+a.m1+" | flow "+a.flow+" | depth "+a.depth+"</div>";document.getElementById("s").innerHTML=h}catch{}setTimeout(tick,3000)}tick();</script></body></html>';
 
+function health(){const reasons=[];if(!state.marketUp)reasons.push('market_disconnected');if(!state.detailMarketUp||!state.publicUp)reasons.push('detail_disconnected');if(!fresh(state.lastMarketAt))reasons.push('market_observation_stale');if(!fresh(state.lastDetailAt))reasons.push('detail_observation_stale');return {ok:reasons.length===0,reasons,version:'NINA PRE v1.2.2',commit:process.env.RENDER_GIT_COMMIT||null,at:new Date().toISOString(),alertAgeLimitMs:90000,marketUp:state.marketUp,detailMarketUp:state.detailMarketUp,publicUp:state.publicUp,lastMarketAt:state.lastMarketAt?new Date(state.lastMarketAt).toISOString():null,lastDetailAt:state.lastDetailAt?new Date(state.lastDetailAt).toISOString():null,universe:state.symbols.size,events:state.events,detailEvents:state.detailEvents,malformed:state.malformed}}
+
 const server=http.createServer((req,res)=>{
  res.setHeader('access-control-allow-origin','*');res.setHeader('cache-control','no-store');if(!['GET','HEAD'].includes(req.method)){res.statusCode=405;return res.end();}
  if(req.url==='/'){res.writeHead(302,{Location:'https://nina-dashboard-v1.onrender.com/'});return res.end();}
-  if(req.url==='/health'){res.setHeader('content-type','application/json');return res.end(JSON.stringify({ok:state.marketUp,version:'1.2.1',alertAgeLimitMs:90000,marketUp:state.marketUp,detailMarketUp:state.detailMarketUp,publicUp:state.publicUp,universe:state.symbols.size,events:state.events,detailEvents:state.detailEvents}))}
+  if(req.url==='/health'||req.url==='/ready'){const h=health();res.setHeader('content-type','application/json');if(req.url==='/ready'&&!h.ok)res.statusCode=503;return res.end(JSON.stringify(h))}
   if(req.url==='/api/preimpulse'){res.setHeader('content-type','application/json');return res.end(JSON.stringify({at:new Date().toISOString(),universe:state.symbols.size,marketUp:state.marketUp,detailMarketUp:state.detailMarketUp,publicUp:state.publicUp,version:'1.2.1',alertAgeLimitMs:90000,alerts:state.alerts.filter(a=>fresh(a.ts)&&fresh(a.priceAt)),watch:state.watch.filter(a=>fresh(a.priceAt))}))}
   res.setHeader('content-type','text/html');res.end(html);
 });
