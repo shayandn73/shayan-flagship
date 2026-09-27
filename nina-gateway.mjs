@@ -1,7 +1,7 @@
 import http from 'node:http';
 import {fetchEligibility,contractStatus} from './nina-ourbit.mjs';
 
-export const VERSION = '1.2.1';
+export const VERSION = '1.2.2';
 export const STALE_MS = 90_000;
 const endpoints = {
   technical: process.env.NINA_TECHNICAL_URL || 'https://nina-market-intelligence-v05f.onrender.com/api/context',
@@ -105,12 +105,21 @@ export function buildSnapshot(results, at = Date.now(), eligibility = null) {
   }
   const top = [...candidates.values()].sort((a,b)=>b.score-a.score).slice(0,20);
   const degraded = Object.values(sources).filter(x=>!x.usable).map(x=>`${x.name}:${x.reasons.join(',')}`);
+  const researchWarnings = [];
   if (fundamental?.sources) for (const [name,detail] of Object.entries(fundamental.sources)) {
-    if (detail?.ok !== true) degraded.push(`fundamental.${name}:${detail?.error || 'unavailable'}`);
+    if (detail?.ok !== true) researchWarnings.push(`fundamental.${name}:${detail?.error || 'unavailable'}`);
   }
+  const marketDataHealth = sources.technical.usable && sources.preimpulse.usable ? 'READY' : 'DEGRADED';
+  const fundamentalHealth = !sources.fundamental.usable ? 'UNAVAILABLE' : researchWarnings.length ? 'DEGRADED' : 'READY';
+  const learnerHealth = sources.learner.usable && learner?.storage?.persistent === true ? 'READY' : 'DEGRADED';
+  const venueVerification = eligibility?.ok ? 'PER_SYMBOL_VERIFICATION' : 'UNVERIFIED';
+  const executionReadiness = marketDataHealth !== 'READY' ? 'MARKET_DATA_UNAVAILABLE' :
+    venueVerification === 'UNVERIFIED' ? 'VENUE_UNVERIFIED' : 'MANUAL_REVIEW_REQUIRED';
+  const health = {runtimeHealth:'READY',marketDataHealth,fundamentalHealth,venueVerification,learnerHealth,executionReadiness};
+  const status = marketDataHealth === 'READY' && learnerHealth === 'READY' ? 'READY' : 'DEGRADED';
   return {
     at:iso(at), version:`NINA Gateway v${VERSION}`, overallFresh:sources.technical.usable,
-    status:degraded.length ? 'DEGRADED' : 'READY', warnings:degraded,
+    status,health,warnings:[...degraded,...researchWarnings],researchWarnings,
     freshCount:Object.values(sources).filter(x=>x.usable).length, totalSources:Object.keys(sources).length,
     sources:Object.fromEntries(Object.entries(sources).map(([k,{data,...v}])=>[k,v])), top, preimpulse:top.filter(x=>x.origins.includes('preimpulse')&&x.state!=='LATE_DO_NOT_CHASE'),
     regime:fundamental?.regime ?? null, fundamentalSources:fundamental?.sources ?? null,
@@ -118,7 +127,7 @@ export function buildSnapshot(results, at = Date.now(), eligibility = null) {
       winRate:learner.winRate ?? null,avgR:learner.avgR ?? null,promotionEligible:false,
       storage:learner.storage??null,challengerWeights:learner.challengerWeights??null,avgMFE:learner.avgMFE??null,avgMAE:learner.avgMAE??null,t1BeforeStop:learner.t1BeforeStop??null,
       note:learner.storage?.persistent?'PostgreSQL-backed shadow only; production promotion disabled':'Persistence unverified'} : null,
-    ourbit:{contractVerification:eligibility?.ok?'PER_SYMBOL_VERIFICATION':'UNVERIFIED',verifiedAt:eligibility?.ok?eligibility.at:null,
+    ourbit:{contractVerification:venueVerification,verifiedAt:eligibility?.ok?eligibility.at:null,
       sourceError:eligibility?.reason||null,directPricing:false},
     rules:{staleAfterMs:STALE_MS,alertAgeLimitMs:STALE_MS,missingEvidence:'UNKNOWN',ourbitStates:['VERIFIED','UNVERIFIED','NOT_LISTED'],writeAccess:'disabled',execution:'manual_only'},commit:process.env.RENDER_GIT_COMMIT??null
   };
@@ -138,7 +147,7 @@ export function runtimeChecks(){
 }
 
 const schema = {openapi:'3.1.0',info:{title:'NINA Market Intelligence Gateway',version:VERSION,description:'Read-only, fail-closed research context. No execution API.'},
-  paths:Object.fromEntries(['/health','/api/live','/api/top','/api/preimpulse','/api/learner','/api/sources','/api/debug','/api/model-context','/api/symbol/{symbol}'].map(path=>[path,{get:{operationId:'get'+path.replace(/[^a-zA-Z]/g,'_'),...(path.includes('{symbol}')?{parameters:[{name:'symbol',in:'path',required:true,schema:{type:'string',pattern:'^[A-Za-z0-9]{2,25}USDT$'}}]}:{}),responses:{200:{description:'Read-only snapshot. Underlying observation timestamps govern freshness; unavailable evidence is null with UNKNOWN status. UNVERIFIED Ourbit contracts are never executable.',content:{'application/json':{schema:{type:'object',additionalProperties:true}}}}}}}]))};
+  paths:Object.fromEntries(['/health','/ready','/api/live','/api/top','/api/preimpulse','/api/learner','/api/sources','/api/debug','/api/model-context','/api/symbol/{symbol}'].map(path=>[path,{get:{operationId:'get'+path.replace(/[^a-zA-Z]/g,'_'),...(path.includes('{symbol}')?{parameters:[{name:'symbol',in:'path',required:true,schema:{type:'string',pattern:'^[A-Za-z0-9]{2,25}USDT$'}}]}:{}),responses:{200:{description:'Read-only snapshot. Underlying observation timestamps govern freshness; unavailable evidence is null with UNKNOWN status. UNVERIFIED Ourbit contracts are never executable.',content:{'application/json':{schema:{type:'object',additionalProperties:true}}}}}}}]))};
 
 export function createServer({sourceUrls=endpoints, collect=fetchSource, eligibilityProvider=fetchEligibility}={}) {
   let flight = null;
@@ -159,14 +168,15 @@ export function createServer({sourceUrls=endpoints, collect=fetchSource, eligibi
       const path = new URL(req.url,'http://localhost').pathname;
       if (path === '/openapi.json') return send(res,schema);
       const x=await snapshot();
-      if(path === '/health') return send(res,{ok:x.overallFresh && x.status==='READY',at:x.at,version:x.version,status:x.status,freshCount:x.freshCount,totalSources:x.totalSources,rules:x.rules,commit:x.commit,sources:Object.fromEntries(Object.entries(x.sources).map(([k,v])=>[k,{ok:v.ok,usable:v.usable,ageMs:v.ageMs,sourceAt:v.sourceAt,reasons:v.reasons,error:v.error}]))});
+      if(path === '/ready') {res.statusCode=x.status==='READY'?200:503;return send(res,{ok:x.status==='READY',at:x.at,version:x.version,health:x.health,commit:x.commit,warnings:x.warnings});}
+      if(path === '/health') return send(res,{ok:x.status==='READY',at:x.at,version:x.version,status:x.status,health:x.health,warnings:x.warnings,freshCount:x.freshCount,totalSources:x.totalSources,rules:x.rules,commit:x.commit,sources:Object.fromEntries(Object.entries(x.sources).map(([k,v])=>[k,{ok:v.ok,usable:v.usable,ageMs:v.ageMs,sourceAt:v.sourceAt,reasons:v.reasons,error:v.error}]))});
       if(path === '/api/live') return send(res,x);
-      if(path === '/api/top') return send(res,{at:x.at,version:x.version,rules:x.rules,overallFresh:x.overallFresh,status:x.status,top:x.top,regime:x.regime,learnerSummary:x.learnerSummary,warnings:x.warnings});
-      if(path === '/api/preimpulse') return send(res,{at:x.at,version:x.version,rules:x.rules,status:x.status,items:x.preimpulse,warnings:x.warnings});
+      if(path === '/api/top') return send(res,{at:x.at,version:x.version,rules:x.rules,overallFresh:x.overallFresh,status:x.status,health:x.health,top:x.top,regime:x.regime,learnerSummary:x.learnerSummary,warnings:x.warnings});
+      if(path === '/api/preimpulse') return send(res,{at:x.at,version:x.version,rules:x.rules,status:x.status,health:x.health,items:x.preimpulse,warnings:x.warnings});
       if(path === '/api/learner') return send(res,{at:x.at,source:x.sources.learner.sourceAt,metrics:x.learnerSummary,warnings:x.sources.learner.reasons});
-      if(path === '/api/sources') return send(res,{at:x.at,version:x.version,rules:x.rules,sources:Object.fromEntries(Object.entries(x.sources).map(([k,v])=>[k,{usable:v.usable,sourceAt:v.sourceAt,ageMs:v.ageMs,reasons:v.reasons,error:v.error}])),fundamental:x.fundamentalSources,ourbit:x.ourbit});
-      if(path === '/api/debug') return send(res,{at:x.at,version:x.version,commit:x.commit,warnings:x.warnings,rules:x.rules,selfTest:runtimeChecks()});
-      if(path === '/api/model-context') return send(res,{at:x.at,status:x.status,warnings:x.warnings,ourbit:x.ourbit,version:x.version,rules:x.rules,candidates:x.top.slice(0,8),learner:x.learnerSummary});
+      if(path === '/api/sources') return send(res,{at:x.at,version:x.version,rules:x.rules,health:x.health,sources:Object.fromEntries(Object.entries(x.sources).map(([k,v])=>[k,{usable:v.usable,sourceAt:v.sourceAt,ageMs:v.ageMs,reasons:v.reasons,error:v.error}])),fundamental:x.fundamentalSources,ourbit:x.ourbit});
+      if(path === '/api/debug') return send(res,{at:x.at,version:x.version,commit:x.commit,health:x.health,warnings:x.warnings,rules:x.rules,selfTest:runtimeChecks()});
+      if(path === '/api/model-context') return send(res,{at:x.at,status:x.status,health:x.health,warnings:x.warnings,ourbit:x.ourbit,version:x.version,rules:x.rules,candidates:x.top.slice(0,8),learner:x.learnerSummary});
       if(path.startsWith('/api/symbol/')) {const sym=symbol(decodeURIComponent(path.slice(12)));if(!sym){res.statusCode=400;return send(res,{error:'invalid_symbol'});}return send(res,{at:x.at,symbol:sym,candidates:x.top.filter(c=>c.symbol===sym),note:'Ourbit proof is per candidate; direct Ourbit pricing is unavailable'});}
       res.statusCode=404;return send(res,{error:'not_found'});
     }catch(e){res.statusCode=503;send(res,{ok:false,error:'snapshot_unavailable'});}
