@@ -30,6 +30,10 @@ export function inspectSource(name, result, at = Date.now()) {
   if (result?.ok && ts != null && ageMs < -5000) reasons.push('future_source_timestamp');
   if (name === 'technical' && fresh && (data?.feeds?.binanceMarket !== true || data?.feeds?.binanceDetail !== true)) reasons.push('market_or_detail_feed_disconnected');
   if (name === 'preimpulse' && fresh && (data?.marketUp !== true || data?.detailMarketUp !== true || data?.publicUp !== true)) reasons.push('preimpulse_feed_disconnected');
+  if (['technical','preimpulse'].includes(name) && fresh) for (const key of ['lastMarketAt','lastDetailAt']) {
+    const observed=stamp(data?.[key]);if(observed==null||at-observed>STALE_MS||at-observed < -5000)reasons.push(`${key}_missing_or_stale`);
+  }
+  if (name === 'fundamental' && fresh) {const observed=stamp(data?.lastCycleAt);if(observed==null||at-observed>360000||at-observed < -5000)reasons.push('fundamental_cycle_missing_or_stale');}
   if (name === 'learner' && fresh && data?.mode !== 'SHADOW_ONLY') reasons.push('learner_mode_unverified');
   const usable = fresh && reasons.length === 0;
   return {name, ok: Boolean(result?.ok), usable, fresh, status:result?.status ?? null, sourceAt:ts == null ? null : iso(ts), ageMs, latencyMs:result?.latencyMs ?? null, reasons, error:result?.error ?? null, data:usable ? data : null};
@@ -135,7 +139,7 @@ export function buildSnapshot(results, at = Date.now(), eligibility = null) {
 
 export function runtimeChecks(){
   const now=Date.now(),time=new Date(now).toISOString();
-  const base={technical:{ok:true,data:{at:time,feeds:{binanceMarket:true,binanceDetail:true},top:[]}},preimpulse:{ok:true,data:{at:time,marketUp:true,detailMarketUp:true,publicUp:true,alerts:[]}},fundamental:{ok:true,data:{at:time}},learner:{ok:true,data:{at:time,mode:'SHADOW_ONLY'}}};
+  const base={technical:{ok:true,data:{at:time,lastMarketAt:time,lastDetailAt:time,feeds:{binanceMarket:true,binanceDetail:true},top:[]}},preimpulse:{ok:true,data:{at:time,lastMarketAt:time,lastDetailAt:time,marketUp:true,detailMarketUp:true,publicUp:true,alerts:[]}},fundamental:{ok:true,data:{at:time,lastCycleAt:time}},learner:{ok:true,data:{at:time,mode:'SHADOW_ONLY'}}};
   const row={symbol:'BTCUSDT',side:'LONG',score:80,price:100,m1:0,m5:0,at:new Date(now-90001).toISOString()};
   base.preimpulse.data.alerts=[row];
   const stale=buildSnapshot(base,now).top.length===0;
