@@ -90,7 +90,7 @@ export function buildSnapshot(results, at = Date.now(), eligibility = null) {
       m1:row.m1 ?? null, m5:row.m5 ?? null, flow:flowFresh ? row.flow ?? null : null, depth:depthFresh ? row.depth ?? null : null,
       oiDelta:oiFresh ? row.oiDelta ?? null : null, funding:fundingFresh ? row.funding ?? null : null,
       rank:row.rank ?? null, rankJump:row.rankJump ?? null, origins:[origin],
-      sourceAt:source.sourceAt, ourbit:{...venue,directPrice:false},
+      sourceAt:source.sourceAt, ourbit:{...venue,directPrice:venue.directPrice===true},
       executable:false, warnings
     };
     if (prior) {
