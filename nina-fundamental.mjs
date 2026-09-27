@@ -9,6 +9,7 @@ const state = {
   version: '0.6.1-fundamental',
   startedAt: new Date().toISOString(),
   cycles: 0,
+  lastCycleAt: null,
   regime: {},
   fundamentals: new Map(),
   mentions: new Map(),
@@ -164,6 +165,7 @@ async function cycle(){
   state.cycles++;
   await Promise.allSettled([updateFearGreed(), updateCoinPaprika(), ...SOURCES.map(updateSource)]);
   const health=Object.fromEntries([...state.sources].map(([k,v])=>[k,{ok:v.ok,type:v.type,changed:v.changed,items:v.items,error:v.error}]));
+  state.lastCycleAt=new Date().toISOString();
   const snap={at:new Date().toISOString(),version:state.version,cycles:state.cycles,regime:state.regime,fundamentals:state.fundamentals.size,sources:health,topSocial:topSocial().slice(0,8)};
   console.log('NINA_FUNDAMENTAL',JSON.stringify(snap));
   setTimeout(cycle,180000);
@@ -173,8 +175,12 @@ const server=http.createServer((req,res)=>{
   const u=new URL(req.url,'http://localhost');
   res.setHeader('content-type','application/json; charset=utf-8');
   res.setHeader('access-control-allow-origin','*');res.setHeader('cache-control','no-store');if(!['GET','HEAD'].includes(req.method)){res.statusCode=405;return res.end(JSON.stringify({error:'read_only'}));}
-  if(u.pathname==='/health'){
-    res.end(JSON.stringify({ok:true,version:state.version,cycles:state.cycles,fundamentals:state.fundamentals.size,sources:Object.fromEntries(state.sources)})); return;
+  if(u.pathname==='/health'||u.pathname==='/ready'){
+    const cycleAgeMs=state.lastCycleAt?Date.now()-Date.parse(state.lastCycleAt):null;
+    const required=[...state.sources].filter(([k,v])=>v.type!=='crowd'&&v.ok);
+    const reasons=[];if(cycleAgeMs==null||cycleAgeMs>360000)reasons.push('fundamental_cycle_stale');if(!required.length)reasons.push('all_primary_research_sources_unavailable');
+    const h={ok:reasons.length===0,reasons,version:state.version,commit:process.env.RENDER_GIT_COMMIT||null,at:new Date().toISOString(),lastCycleAt:state.lastCycleAt,cycleAgeMs,cycles:state.cycles,fundamentals:state.fundamentals.size,sources:Object.fromEntries(state.sources)};
+    if(u.pathname==='/ready'&&!h.ok)res.statusCode=503;res.end(JSON.stringify(h)); return;
   }
   if(u.pathname==='/api/context'){
     res.end(JSON.stringify({at:new Date().toISOString(),version:state.version,regime:state.regime,topSocial:topSocial(),sources:Object.fromEntries(state.sources)})); return;
