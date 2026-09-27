@@ -153,7 +153,7 @@ export function runtimeChecks(){
 const schema = {openapi:'3.1.0',info:{title:'NINA Market Intelligence Gateway',version:VERSION,description:'Read-only, fail-closed research context. No execution API.'},
   paths:Object.fromEntries(['/health','/ready','/api/live','/api/top','/api/preimpulse','/api/learner','/api/sources','/api/debug','/api/model-context','/api/symbol/{symbol}'].map(path=>[path,{get:{operationId:'get'+path.replace(/[^a-zA-Z]/g,'_'),...(path.includes('{symbol}')?{parameters:[{name:'symbol',in:'path',required:true,schema:{type:'string',pattern:'^[A-Za-z0-9]{2,25}USDT$'}}]}:{}),responses:{200:{description:'Read-only snapshot. Underlying observation timestamps govern freshness; unavailable evidence is null with UNKNOWN status. UNVERIFIED Ourbit contracts are never executable.',content:{'application/json':{schema:{type:'object',additionalProperties:true}}}}}}}]))};
 
-export function createServer({sourceUrls=endpoints, collect=fetchSource, eligibilityProvider=fetchEligibility}={}) {
+export function createServer({sourceUrls=endpoints, collect=fetchSource, eligibilityProvider=fetchEligibility, legacyRedirect=process.env.NINA_CANONICAL_REDIRECT_URL||null}={}) {
   let flight = null;
   const snapshot = () => {
     if (!flight) flight = Promise.all([
@@ -168,6 +168,7 @@ export function createServer({sourceUrls=endpoints, collect=fetchSource, eligibi
     res.setHeader('cache-control','no-store');res.setHeader('x-content-type-options','nosniff');
     if (req.method === 'OPTIONS') {res.statusCode=204;return res.end();}
     if (!['GET','HEAD'].includes(req.method)) {res.statusCode=405;return res.end();}
+    if (legacyRedirect) {const base=new URL(legacyRedirect);if(base.protocol!=='https:'||base.hostname!=='nina-gateway-v11.onrender.com') {res.statusCode=503;return send(res,{ok:false,error:'invalid_canonical_redirect'});}const p=new URL(req.url,'http://localhost');res.writeHead(308,{Location:base.origin+'/'+p.pathname.replace(/^\/+/, '')+p.search});return res.end();}
     try {
       const path = new URL(req.url,'http://localhost').pathname;
       if (path === '/openapi.json') return send(res,schema);
