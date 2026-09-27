@@ -70,6 +70,7 @@ test('read-only HTTP contract rejects writes and unknown paths',async()=>{
     assert.equal((await fetch(base+'/unknown')).status,404);
     const x=await (await fetch(base+'/api/model-context')).json();
     assert.equal(x.status,'DEGRADED'); assert.equal(x.candidates.length,0);
+    assert.equal((await fetch(base+'/ready')).status,503);
   } finally {server.close();}
 });
 
@@ -80,4 +81,19 @@ test('verified contract does not promote a price without its own timestamp',()=>
   assert.equal(x.top[0].ourbit.available,true);
   assert.equal(x.top[0].executable,false);
   assert.equal(x.top[0].priceFresh,false);
+});
+
+test('optional Reddit failure affects research health without vetoing live market data',()=>{
+  const inputs=structuredClone(ready);
+  inputs.technical.data.top=[];
+  inputs.preimpulse.data.alerts=[];
+  inputs.learner.data.storage={persistent:true};
+  inputs.fundamental.data.sources={reddit_cryptocurrency:{ok:false,error:'HTTP 403'},official:{ok:true}};
+  const x=buildSnapshot(inputs,at);
+  assert.equal(x.health.marketDataHealth,'READY');
+  assert.equal(x.health.fundamentalHealth,'DEGRADED');
+  assert.equal(x.health.learnerHealth,'READY');
+  assert.equal(x.status,'READY');
+  assert.equal(x.health.executionReadiness,'VENUE_UNVERIFIED');
+  assert.match(x.warnings.join(' '),/reddit_cryptocurrency/);
 });
